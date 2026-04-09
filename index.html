@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sözler — Reels</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --accent: #f0c040;
+    --white: #faf8f3;
+    --dark: #0d0c0a;
+    --muted: rgba(250,248,243,0.45);
+    --card-h: 100svh;
+  }
+
+  html, body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--dark);
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    cursor: none;
+  }
+
+  /* Custom cursor */
+  #cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%,-50%);
+    transition: transform 0.1s, width 0.2s, height 0.2s;
+    mix-blend-mode: difference;
+  }
+  #cursor.grow { width: 40px; height: 40px; }
+
+  /* Feed container */
+  #feed {
+    height: 100svh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  #feed::-webkit-scrollbar { display: none; }
+
+  /* Each card */
+  .card {
+    height: var(--card-h);
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 32px;
+    overflow: hidden;
+    transition: opacity 0.4s;
+  }
+
+  /* Layered background per card */
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg);
+    opacity: 0.92;
+    z-index: 0;
+  }
+  .card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 70% 60% at var(--rx,50%) var(--ry,50%), var(--glow) 0%, transparent 70%);
+    z-index: 0;
+    animation: pulseGlow 6s ease-in-out infinite alternate;
+  }
+  @keyframes pulseGlow {
+    from { opacity: 0.5; }
+    to   { opacity: 1; }
+  }
+
+  /* Noise texture overlay */
+  .card .noise {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    opacity: 0.06;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 180px;
+  }
+
+  /* Decorative geometric shapes */
+  .card .geo {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1;
+  }
+  .geo-1 {
+    width: 340px; height: 340px;
+    border: 1px solid rgba(255,255,255,0.06);
+    top: -60px; right: -80px;
+    animation: spin 30s linear infinite;
+  }
+  .geo-2 {
+    width: 180px; height: 180px;
+    border: 1px solid rgba(255,255,255,0.08);
+    bottom: 80px; left: -40px;
+    animation: spin 20s linear infinite reverse;
+  }
+  .geo-3 {
+    width: 60px; height: 60px;
+    background: var(--accent);
+    opacity: 0.08;
+    top: 30%;
+    right: 15%;
+    animation: floatY 7s ease-in-out infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes floatY {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-18px); }
+  }
+
+  /* Content wrapper */
+  .card-inner {
+    position: relative;
+    z-index: 2;
+    max-width: 520px;
+    width: 100%;
+    text-align: center;
+    animation: fadeUp 0.7s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(28px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Category pill */
+  .category {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    padding: 4px 14px;
+    border-radius: 100px;
+    margin-bottom: 28px;
+    opacity: 0.85;
+  }
+
+  /* Big quote mark */
+  .quote-mark {
+    font-family: 'Playfair Display', serif;
+    font-size: 120px;
+    line-height: 0.6;
+    color: var(--accent);
+    opacity: 0.18;
+    display: block;
+    margin-bottom: -10px;
+    user-select: none;
+  }
+
+  /* Quote text */
+  .quote-text {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.3rem, 5vw, 2rem);
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--white);
+    margin-bottom: 28px;
+    letter-spacing: 0.01em;
+  }
+  .quote-text em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  /* Author */
+  .author {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.06em;
+  }
+  .author::before, .author::after {
+    content: '';
+    width: 40px;
+    height: 1px;
+    background: var(--muted);
+  }
+
+  /* Like + share sidebar */
+  .sidebar {
+    position: absolute;
+    right: 16px;
+    bottom: 100px;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+  }
+  .sideBtn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    cursor: none;
+    background: none;
+    border: none;
+    color: var(--white);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    opacity: 0.75;
+    transition: opacity 0.2s, transform 0.15s;
+  }
+  .sideBtn:hover { opacity: 1; }
+  .sideBtn.liked .icon { color: #ff4d6d; transform: scale(1.2); }
+  .sideBtn:active { transform: scale(0.9); }
+  .icon {
+    font-size: 26px;
+    line-height: 1;
+    display: block;
+    transition: transform 0.2s, color 0.2s;
+  }
+
+  /* Progress dots */
+  #dots {
+    position: fixed;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 20;
+    pointer-events: none;
+  }
+  .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.25);
+    transition: height 0.3s, background 0.3s;
+  }
+  .dot.active {
+    height: 18px;
+    background: var(--accent);
+  }
+
+  /* Top bar */
+  #topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 20;
+    padding: 18px 20px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(13,12,10,0.7) 0%, transparent 100%);
+    pointer-events: none;
+  }
+  #logo {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: 22px;
+    letter-spacing: 0.03em;
+    color: var(--white);
+    opacity: 0.9;
+  }
+  #logo span { color: var(--accent); }
+
+  /* Swipe hint */
+  #hint {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    animation: bounce 2s ease-in-out infinite;
+    pointer-events: none;
+    opacity: 0.5;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--white);
+    transition: opacity 1s;
+  }
+  #hint.hidden { opacity: 0; }
+  @keyframes bounce {
+    0%,100% { transform: translateX(-50%) translateY(0); }
+    50%      { transform: translateX(-50%) translateY(-6px); }
+  }
+  .arrow { font-size: 18px; }
+
+  /* Copy toast */
+  #toast {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent);
+    color: var(--dark);
+    padding: 9px 22px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 99;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Scrollbar for touch */
+  @media (pointer: coarse) {
+    #cursor { display: none; }
+    body { cursor: auto; }
+  }
+</style>
+</head>
+<body>
+
+<div id="cursor"></div>
+
+<div id="topbar">
+  <div id="logo">söz<span>.</span></div>
+</div>
+
+<div id="dots"></div>
+<div id="hint"><div class="arrow">↑</div>Kaydır</div>
+<div id="toast">Kopyalandı ✓</div>
+
+<div id="feed"></div>
+
+<script>
+const quotes = [
+  { text: "Hayat, cesur olanlara güler; korkak olanlara ise sırtını döner.", author: "Seneca", category: "Yaşam", bg: "#0a0a14", glow: "#3030a0", rx: "30%", ry: "40%" },
+  { text: "Bir ağaç gibi ol — köklerin derinlerde olsun, ama dalların gökyüzünü tarasın.", author: "Rumi", category: "Büyüme", bg: "#0e0a08", glow: "#8b4a10", rx: "70%", ry: "30%" },
+  { text: "Sevgi, zamanla büyüyen tek şeydir; korku ise zamanla küçülen.", author: "Leo Tolstoy", category: "Aşk", bg: "#0d0809", glow: "#7a1020", rx: "50%", ry: "60%" },
+  { text: "Bugünü iyi yaşayan, yarından korkmaz.", author: "Epiktetos", category: "An", bg: "#090d0b", glow: "#0f5a30", rx: "25%", ry: "70%" },
+  { text: "Sessizlik, en güçlü fırtınanın öncüsüdür.", author: "Anonim", category: "Güç", bg: "#0c0c10", glow: "#404080", rx: "60%", ry: "25%" },
+  { text: "Kendini bil, sonra dünyayı değiştirmeye kalk.", author: "Sokrates", category: "Bilgelik", bg: "#0d0b08", glow: "#604010", rx: "40%", ry: "55%" },
+  { text: "En karanlık gece bile sabaha kavuşur; en derin keder de sevinçle buluşur.", author: "Victor Hugo", category: "Umut", bg: "#080c12", glow: "#103560", rx: "55%", ry: "40%" },
+  { text: "Başarı, düştükten sonra bir kez daha kalkmaktır.", author: "Nelson Mandela", category: "Azim", bg: "#0c080a", glow: "#602030", rx: "35%", ry: "65%" },
+  { text: "Rüzgar her zaman ters esmez; yelken açmayı bil.", author: "Anonim", category: "Hayat", bg: "#080e0d", glow: "#0a5040", rx: "65%", ry: "35%" },
+  { text: "Gözlerinle değil, yüreğinle gör; asıl güzellik orada saklıdır.", author: "Antoine de Saint-Exupéry", category: "Bakış", bg: "#0d0c0a", glow: "#504020", rx: "45%", ry: "50%" },
+  { text: "Zamanın en değerli anları, seninle geçirdiğim anlardır.", author: "Dostoyevski", category: "Aşk", bg: "#0d0809", glow: "#901530", rx: "30%", ry: "45%" },
+  { text: "Bir insan ancak kendini affettiğinde gerçekten özgürleşir.", author: "Carl Jung", category: "Özgürlük", bg: "#0a0d0c", glow: "#205040", rx: "70%", ry: "60%" },
+  { text: "Güçlü olmak değil, doğru olmak önemlidir.", author: "Immanuel Kant", category: "Erdem", bg: "#0c0c0e", glow: "#303580", rx: "50%", ry: "30%" },
+  { text: "Sevmek bir eylemdir, bir his değil. Birisini seviyorsanız, onu seçmeye devam edin.", author: "Erich Fromm", category: "Aşk", bg: "#0e090b", glow: "#6a1025", rx: "40%", ry: "70%" },
+  { text: "Geçmişine takılıp kalırsan, geleceğini kaybedersin.", author: "Konfüçyüs", category: "Zaman", bg: "#090c0e", glow: "#104050", rx: "55%", ry: "45%" },
+  { text: "Her sona bir başlangıç saklanmıştır; ona izin ver.", author: "T.S. Eliot", category: "Değişim", bg: "#0b0d09", glow: "#304a10", rx: "60%", ry: "25%" },
+  { text: "Düşman en güçlü silahını kullandığında, sen gülümsemeyi seç.", author: "Mahatma Gandhi", category: "Barış", bg: "#0c0c09", glow: "#405020", rx: "30%", ry: "55%" },
+  { text: "Kalbinin sesini duy; akıl seni durdurur, yürek seni uçurur.", author: "Paulo Coelho", category: "Cesaret", bg: "#0e0a09", glow: "#702010", rx: "45%", ry: "40%" },
+];
+
+const feed = document.getElementById('feed');
+const dotsEl = document.getElementById('dots');
+const hint = document.getElementById('hint');
+const toast = document.getElementById('toast');
+let currentCard = 0;
+let toastTimer;
+
+// Build cards
+quotes.forEach((q, i) => {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.style.setProperty('--bg', q.bg);
+  card.style.setProperty('--glow', q.glow);
+  card.style.setProperty('--rx', q.rx);
+  card.style.setProperty('--ry', q.ry);
+
+  card.innerHTML = `
+    <div class="noise"></div>
+    <div class="geo geo-1"></div>
+    <div class="geo geo-2"></div>
+    <div class="geo geo-3"></div>
+    <div class="card-inner">
+      <span class="category">${q.category}</span>
+      <span class="quote-mark">"</span>
+      <p class="quote-text">${q.text}</p>
+      <div class="author">${q.author}</div>
+    </div>
+    <div class="sidebar">
+      <button class="sideBtn likeBtn" data-idx="${i}" title="Beğen">
+        <span class="icon">♡</span>
+        <span class="count">0</span>
+      </button>
+      <button class="sideBtn copyBtn" data-text="${q.text} — ${q.author}" title="Kopyala">
+        <span class="icon">⎘</span>
+        <span>Kopyala</span>
+      </button>
+      <button class="sideBtn shareBtn" data-text="${q.text} — ${q.author}" title="Paylaş">
+        <span class="icon">↗</span>
+        <span>Paylaş</span>
+      </button>
+    </div>`;
+
+  feed.appendChild(card);
+
+  // Dot
+  const dot = document.createElement('div');
+  dot.className = 'dot' + (i === 0 ? ' active' : '');
+  dotsEl.appendChild(dot);
+});
+
+// Update active dot + card on scroll
+const cards = feed.querySelectorAll('.card');
+const dots = dotsEl.querySelectorAll('.dot');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = [...cards].indexOf(e.target);
+      currentCard = idx;
+      dots.forEach((d,i) => d.classList.toggle('active', i === idx));
+      if (idx > 0) hint.classList.add('hidden');
+      // re-trigger animation
+      const inner = e.target.querySelector('.card-inner');
+      inner.style.animation = 'none';
+      inner.offsetHeight; // reflow
+      inner.style.animation = '';
+    }
+  });
+}, { threshold: 0.6 });
+
+cards.forEach(c => observer.observe(c));
+
+// Like
+feed.addEventListener('click', e => {
+  const likeBtn = e.target.closest('.likeBtn');
+  if (likeBtn) {
+    likeBtn.classList.toggle('liked');
+    const span = likeBtn.querySelector('.icon');
+    const count = likeBtn.querySelector('.count');
+    const liked = likeBtn.classList.contains('liked');
+    span.textContent = liked ? '♥' : '♡';
+    count.textContent = liked
+      ? (parseInt(count.textContent) + 1)
+      : Math.max(0, parseInt(count.textContent) - 1);
+  }
+
+  // Copy
+  const copyBtn = e.target.closest('.copyBtn');
+  if (copyBtn) {
+    navigator.clipboard.writeText(copyBtn.dataset.text).then(() => showToast());
+  }
+
+  // Share
+  const shareBtn = e.target.closest('.shareBtn');
+  if (shareBtn) {
+    if (navigator.share) {
+      navigator.share({ text: shareBtn.dataset.text });
+    } else {
+      navigator.clipboard.writeText(shareBtn.dataset.text).then(() => showToast());
+    }
+  }
+});
+
+function showToast() {
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// Double-tap to like
+let lastTap = 0;
+feed.addEventListener('touchend', e => {
+  const now = Date.now();
+  if (now - lastTap < 300) {
+    const btn = cards[currentCard]?.querySelector('.likeBtn');
+    if (btn) btn.click();
+  }
+  lastTap = now;
+});
+
+// Keyboard nav
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowDown' || e.key === 'j') {
+    cards[Math.min(currentCard + 1, cards.length - 1)]?.scrollIntoView({ behavior: 'smooth' });
+  }
+  if (e.key === 'ArrowUp' || e.key === 'k') {
+    cards[Math.max(currentCard - 1, 0)]?.scrollIntoView({ behavior: 'smooth' });
+  }
+});
+
+// Custom cursor
+const cursor = document.getElementById('cursor');
+document.addEventListener('mousemove', e => {
+  cursor.style.left = e.clientX + 'px';
+  cursor.style.top = e.clientY + 'px';
+});
+document.querySelectorAll('button').forEach(btn => {
+  btn.addEventListener('mouseenter', () => cursor.classList.add('grow'));
+  btn.addEventListener('mouseleave', () => cursor.classList.remove('grow'));
+});
+</script>
+</body>
+</html>
+
